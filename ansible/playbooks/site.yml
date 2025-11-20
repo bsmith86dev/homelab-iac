@@ -1,0 +1,19 @@
+- hosts: all
+  roles:
+    - base
+
+- hosts: media_nodes
+  roles:
+    - docker-host
+    - media-stack
+
+- hosts: monitoring_nodes
+  roles:
+    - docker-host
+    - monitoring-stack
+
+- hosts: security_nodes
+  roles:
+    - docker-host
+    - security-stack
+    - wazuh-agent
