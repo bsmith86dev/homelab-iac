@@ -1,0 +1,56 @@
+---
+- name: Ensure base directories for media stack
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /srv/stacks
+    - /srv/stacks/media
+    - /srv/stacks/media/config
+    - /srv/stacks/media/media
+    - /srv/stacks/media/downloads
+
+- name: Deploy docker-compose.yml
+  copy:
+    src: docker-compose.yml
+    dest: /srv/stacks/media/docker-compose.yml
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Deploy .env for media stack
+  copy:
+    src: .env
+    dest: /srv/stacks/media/.env
+    owner: root
+    group: root
+    mode: "0600"
+
+# Optional: ensure Docker is installed (if you ever rebuild media-ct01 from scratch)
+- name: Ensure Docker engine packages are present
+  apt:
+    name:
+      - docker.io
+      - docker-compose-plugin
+    state: present
+    update_cache: yes
+
+- name: Ensure Docker service is running
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Deploy media stack via Docker Compose v2
+  community.docker.docker_compose_v2:
+    project_src: /srv/stacks/media
+    state: present        # up, recreate as needed
+    pull: yes             # always check for updated images
+  register: media_stack_result
+
+- name: Show media stack changes
+  debug:
+    var: media_stack_result

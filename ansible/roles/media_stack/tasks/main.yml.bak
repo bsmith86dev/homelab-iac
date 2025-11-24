@@ -1,0 +1,54 @@
+---
+- name: Ensure base directories for media stack
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ media_root }}"
+    - "{{ media_config_dir }}"
+    - "{{ media_downloads_dir }}"
+    - "{{ media_media_dir }}"
+
+- name: Ensure Docker packages are present (Debian)
+  apt:
+    name:
+      - docker.io
+      - docker-compose-plugin
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Ensure Docker service is running
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: Deploy media .env
+  template:
+    src: env.j2
+    dest: "{{ media_root }}/.env"
+    owner: root
+    group: root
+    mode: "0600"
+
+- name: Deploy media docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: "{{ media_root }}/docker-compose.yml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Bring up media stack using compose v2
+  community.docker.docker_compose_v2:
+    project_src: "{{ media_root }}"
+    state: present
+  register: media_stack_result
+
+- name: Show compose changes
+  debug:
+    var: media_stack_result

@@ -1,0 +1,6 @@
+- hosts: media_nodes
+  become: true
+  roles:
+    - base
+    - docker-host
+    - media-stack

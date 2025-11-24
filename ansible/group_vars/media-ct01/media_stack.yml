@@ -1,0 +1,21 @@
+---
+media_puid: 1000
+media_pgid: 1000
+media_tz: America/Chicago
+
+media_root: /srv/stacks/media
+media_config_dir: "{{ media_root }}/config"
+media_media_dir: "{{ media_root }}/media"
+media_downloads_dir: "{{ media_root }}/downloads"
+
+qbittorrent_web_port: 8080
+sabnzbd_web_port: 8081
+
+# Wireguard secrets – you can move these into Vault later
+wireguard_private_key: "KEh/GSUF649ftlTilMo2htA/++aQ+QXr7UtVLdjxp2U="
+wireguard_addresses: "10.2.0.2/32"
+wireguard_dns: "10.2.0.1"
+wireguard_preshared_key: "2k231McRa7U2sT5mlXQ/vVCIt11tESheiVZMBAahLSQ="
+wireguard_endpoint_ip: "79.127.184.129"
+wireguard_endpoint_port: 51820
+

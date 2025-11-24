@@ -1,0 +1,294 @@
+services:
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    env_file:
+      - .env
+    volumes:
+      - ${CONFIG_ROOT}/gluetun:/gluetun
+    # Expose ports for *all* apps using Gluetun's network stack
+    ports:
+      - "${QBITTORRENT_WEB_PORT}:8080"   # qBittorrent web UI
+      - "${SABNZBD_WEB_PORT}:8081"      # SABnzbd web UI
+      # add more if needed (e.g. incoming torrent ports)
+    networks:
+      - gluetun
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    restart: unless-stopped
+    network_mode: "service:gluetun"   # SHARE gluetun's network
+    depends_on:
+      - gluetun
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - WEBUI_PORT=8080               # internal port inside container
+    volumes:
+      - ${CONFIG_ROOT}/qbittorrent:/config
+      - ${DOWNLOADS_DIR}:/downloads
+    # IMPORTANT: no `ports:` here when using network_mode: service:gluetun
+
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    depends_on:
+      - gluetun
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - SABNZBD__PORT=8081            # internal port
+    volumes:
+      - ${CONFIG_ROOT}/sabnzbd:/config
+      - ${DOWNLOADS_DIR}:/downloads
+    # Again: no `ports:` here – exposed on gluetun
+
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    networks: [media]
+    ports:
+      - "8096:8096"
+      - "8920:8920"
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+      - TZ=${TZ}
+      - UMASK=002
+    tmpfs:
+      - /transcodes:size=${TRANSCODE_SIZE},exec,mode=1777
+    volumes:
+      - ${CONFIG_DIR}/jellyfin:/config
+      - ${CONFIG_DIR}/jellyfin/cache:/cache
+      - ${MEDIA_DIR}/movies:/movies
+      - ${MEDIA_DIR}/tvseries:/tv
+      - ${MEDIA_DIR}/adult:/adult
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - "104"
+      - "44"
+    restart: unless-stopped
+    env_file:
+      - ./.env
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    networks:
+      - media
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+    volumes:
+      - ${MEDIA_DIR}/movies:/movies
+      - ${DOWNLOAD_DIR}/complete:/downloads
+      - ${CONFIG_DIR}/radarr:/config
+    ports:
+      - "7878:7878"
+    restart: unless-stopped
+    env_file:
+      - ./.env
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    networks:
+      - media
+    ports:
+      - "6767:6767"
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+    volumes:
+      - ${CONFIG_DIR}/bazarr/config:/config
+      - ${MEDIA_DIR}/movies:/movies
+      - ${MEDIA_DIR}/tvseries:/tv
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6767"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+    env_file:
+      - ./.env
+
+  lazylibrarian:
+    image: lscr.io/linuxserver/lazylibrarian:latest
+    container_name: lazylibrarian
+    networks:
+      - media
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+    volumes:
+      - ${CONFIG_DIR}/lazylibrarian:/config
+      - ${DOWNLOAD_DIR}/complete:/downloads
+      - ${MEDIA_DIR}/books:/books
+    ports:
+      - "5299:5299"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5299"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+    env_file:
+      - ./.env
+
+  huntarr:
+    container_name: huntarr
+    image: huntarr/huntarr:latest
+    networks:
+      - media
+    ports:
+      - "9705:9705"
+    restart: always
+    volumes:
+      - ${CONFIG_DIR}/huntarr:/config
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9705"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+    env_file:
+      - ./.env
+
+  jellyseerr:
+    container_name: jellyseerr
+    image: fallenbagel/jellyseerr:latest
+    networks:
+      - media
+    ports:
+      - "5055:5055"
+    restart: unless-stopped
+    volumes:
+      - ${CONFIG_DIR}/jellyseerr:/app/config
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5055"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+    env_file:
+      - ./.env
+
+  prowlarr:
+    container_name: prowlarr
+    image: lscr.io/linuxserver/prowlarr:latest
+    networks:
+      - media
+    ports:
+      - "9696:9696"
+    volumes:
+      - ${CONFIG_DIR}/prowlarr/config:/config
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9696"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+    env_file:
+      - ./.env
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    networks:
+      - media
+    ports:
+      - "8989:8989"
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+    volumes:
+      - ${CONFIG_DIR}/sonarr/config:/config
+      - ${MEDIA_DIR}/tvseries:/tv
+      - ${DOWNLOAD_DIR}/complete:/downloads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8989"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+    env_file:
+      - ./.env
+
+  unpackerr:
+    container_name: unpackerr
+    image: ghcr.io/hotio/unpackerr
+    networks:
+      - media
+    restart: unless-stopped
+    environment:
+      - PUID=${PUID}
+      - PGID=${PGID}
+    volumes:
+      - ${CONFIG_DIR}/unpackerr:/config
+      - ${DOWNLOAD_DIR}/complete:/downloads
+    env_file:
+      - ./.env
+
+  whisparr:
+    container_name: whisparr
+    image: ghcr.io/hotio/whisparr:nightly
+    networks:
+      - media
+    ports:
+      - "6969:6969"
+    restart: unless-stopped
+    volumes:
+      - ${CONFIG_DIR}/whisparr/config:/config
+      - ${MEDIA_DIR}/adult:/adult
+      - ${DOWNLOAD_DIR}/complete:/downloads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6969"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+    env_file:
+      - ./.env
+
+  flaresolverr:
+    container_name: flaresolverr
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    networks:
+      - media
+    ports:
+      - "8191:8191"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8191"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+    env_file:
+      - ./.env
+  
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token eyJhIjoiMWY3MzI3NmYyYjI5OTY5OThhMjA3MzUxOTJlMzRmOTkiLCJ0IjoiNTllMjc2N2YtNjE5Ni00NmI3LWEyYzctMTY3YmZhM2I2MjQzIiwicyI6IllXTXlNREJtTTJJdE5USmtZaTAwTnpobUxXSTJPRFF0T1dGbU5qQTBNR1E0TURBMiJ9
+    networks:
+    - media
+    env_file:
+    - ./.env
+
+networks:
+  media:
+    name: media
+  gluetun:
+    name: gluetun

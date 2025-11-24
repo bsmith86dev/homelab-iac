@@ -1,0 +1,49 @@
+---
+# roles/docker-host/tasks/main.yml
+# Install Docker from Debian/Ubuntu repos and prep stack directories
+
+- name: Update apt cache (docker-host)
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install Docker packages from distro
+  apt:
+    name:
+      - docker.io
+      - docker-compose
+    state: present
+
+- name: Enable & start Docker service
+  systemd:
+    name: docker
+    enabled: yes
+    state: started
+
+- name: Ensure /etc/docker directory exists
+  file:
+    path: /etc/docker
+    state: directory
+    mode: "0755"
+
+- name: Write daemon.json
+  copy:
+    dest: /etc/docker/daemon.json
+    content: |
+      {
+        "log-driver": "json-file",
+        "log-opts": {
+            "max-size": "50m"
+        },
+        "exec-opts": ["native.cgroupdriver=systemd"]
+      }
+  notify: restart docker
+
+- name: Create /srv/stacks root directory
+  file:
+    path: /srv/stacks
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+

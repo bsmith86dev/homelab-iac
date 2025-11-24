@@ -1,0 +1,53 @@
+#SPDX-License-Identifier: MIT-0
+---
+# roles/base/tasks/main.yml
+
+- name: Update apt cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Upgrade system packages
+  apt:
+    upgrade: dist
+  register: upgrade_result
+
+- name: Install baseline packages
+  apt:
+    name:
+      - ca-certificates
+      - curl
+      - wget
+      - git
+      - unzip
+      - gnupg
+      - python3
+      - python3-pip
+      - tmux
+      - htop
+    state: present
+
+- name: Ensure /srv exists
+  file:
+    path: /srv
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Ensure timezone is set
+  timezone:
+    name: America/Chicago
+
+- name: Ensure systemd-timesyncd is enabled & running
+  systemd:
+    name: systemd-timesyncd
+    enabled: yes
+    state: started
+
+- name: Clean up old packages
+  apt:
+    autoremove: yes
+    purge: yes
+
+# tasks file for roles/base
