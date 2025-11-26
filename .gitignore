@@ -1,0 +1,17 @@
+# --- Environment files (Docker, Ansible, app configs) ---
+.env
+*.env
+**/.env
+**/*.env
+
+# Do not track vault password files
+*.vault_pass
+ansible/.vault_pass.txt
+
+# Ignore editor/OS files
+.DS_Store
+Thumbs.db
+
+# Ignore backups or temp files
+*.bak
+*.tmp
