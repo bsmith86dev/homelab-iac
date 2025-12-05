@@ -1,4 +1,5 @@
 # --- Environment files (Docker, Ansible, app configs) ---
+stacks/*/.env
 .env
 *.env
 **/.env
@@ -15,3 +16,11 @@ Thumbs.db
 # Ignore backups or temp files
 *.bak
 *.tmp
+
+# Ansible artifacts
+*.retry
+.vscode/
+.idea/
+
+# Vault password files (keep local only)
+.vault_pass.txt

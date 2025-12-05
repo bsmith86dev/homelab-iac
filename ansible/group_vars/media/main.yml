@@ -1,0 +1,33 @@
+# ansible/group_vars/media/main.yml
+
+# --- Basic container ownership ---
+PUID: 1000
+PGID: 1000
+TZ: "America/Chicago"
+
+# --- Paths on media-ct01 ---
+CONFIG_ROOT: /srv/stacks/media
+CONFIG_DIR: "{{ CONFIG_ROOT }}/config"
+MEDIA_DIR: "{{ CONFIG_ROOT }}/media"
+DOWNLOAD_DIR: "{{ CONFIG_ROOT }}/downloads"
+
+# Jellyfin tmpfs size
+TRANSCODE_SIZE: "8G"
+
+# --- Gluetun / WireGuard static settings (non-secret) ---
+VPN_SERVICE_PROVIDER: "custom"
+VPN_TYPE: "wireguard"
+
+WIREGUARD_ADDRESSES: "10.2.0.2/32"
+WIREGUARD_DNS: "10.2.0.1"
+
+QBITTORRENT_WEB_PORT: 8080
+SABNZBD_WEB_PORT: 8081
+
+# --- Secret mappings (values live in vault.yml) ---
+cloudflare_tunnel_token: "{{ vault_cf_tunnel_token }}"
+
+wireguard_private_key: "{{ vault_wireguard_private_key }}"
+wireguard_public_key: "{{ vault_wireguard_public_key }}"
+wireguard_endpoint_ip: "{{ vault_wireguard_endpoint_ip }}"
+wireguard_endpoint_port: "{{ vault_wireguard_endpoint_port }}"

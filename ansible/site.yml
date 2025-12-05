@@ -1,0 +1,7 @@
+---
+- name: Configure media stack hosts
+  hosts: media
+  become: true
+
+  roles:
+    - media_stack

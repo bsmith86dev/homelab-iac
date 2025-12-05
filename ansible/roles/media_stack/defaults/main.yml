@@ -1,0 +1,26 @@
+---
+# Default vars for media_stack role
+
+# Base paths on the media node
+CONFIG_ROOT: /srv/stacks/media
+CONFIG_DIR: "{{ CONFIG_ROOT }}/config"
+DOWNLOAD_DIR: "{{ CONFIG_ROOT }}/downloads"
+MEDIA_DIR: "{{ CONFIG_ROOT }}/media"
+
+# File ownership for media content
+MEDIA_PUID: 1000
+MEDIA_PGID: 1000
+
+# Docker env basics
+MEDIA_TZ: America/Chicago
+
+# Jellyfin transcode tmpfs size
+TRANSCODE_SIZE: 50G
+
+# Where the stack files live on the target
+MEDIA_COMPOSE_DEST: "{{ CONFIG_ROOT }}/docker-compose.yml"
+MEDIA_ENV_DEST: "{{ CONFIG_ROOT }}/.env"
+
+# Where the stack files live in the repo (on the control node)
+MEDIA_COMPOSE_SRC: "docker-compose.yml"
+MEDIA_ENV_TEMPLATE: ".env.j2"
